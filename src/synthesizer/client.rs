@@ -32,7 +32,7 @@ impl Client {
                     get_azure_hostname_from_region(region.as_str())
                 )
             }
-            Auth::Host { host, key } => host.to_string(),
+            Auth::Host { host, .. } => host.to_string(),
         };
 
         let client = BaseClient::connect(

@@ -15,7 +15,8 @@ impl Auth {
         }
     }
 
-    // TODO: is the key even required here?
+    /// Create a new Auth instance directly from a host and a region. This is useful for accessing
+    /// Azure containers.
     pub fn from_host(host: impl Into<Url>, key: impl Into<String>) -> Self {
         Auth::Host {
             host: host.into(),
