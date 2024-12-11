@@ -31,13 +31,17 @@ impl Client {
     }
 
     pub async fn connect(auth: Auth, config: Config) -> crate::Result<Self> {
-        let base_url = format!(
-            "wss://{}.stt.speech{}/speech/recognition/{}/cognitiveservices/v1",
-            auth.region,
-            get_azure_hostname_from_region(&auth.region),
-            config.mode.as_str()
-        );
-        let mut url = Url::parse(&base_url)?;
+        let mut url = match &auth {
+            Auth::Subscription { region, .. } => {
+                let base_url = format!(
+                    "wss://{region}.stt.speech{}/speech/recognition/{}/cognitiveservices/v1",
+                    get_azure_hostname_from_region(&region),
+                    config.mode.as_str()
+                );
+                Url::parse(&base_url)?
+            }
+            Auth::Host { host, .. } => host.clone(),
+        };
 
         let language = config
             .languages
@@ -65,7 +69,7 @@ impl Client {
             .unwrap()
             .add_header(
                 "Ocp-Apim-Subscription-Key".try_into().unwrap(),
-                auth.subscription.to_string().as_str().try_into().unwrap(),
+                auth.key().to_string().as_str().try_into().unwrap(),
             )?
             .add_header(
                 "X-ConnectionId".try_into().unwrap(),

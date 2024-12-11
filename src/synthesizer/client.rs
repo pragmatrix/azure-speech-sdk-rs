@@ -24,11 +24,16 @@ impl Client {
     }
 
     pub async fn connect(auth: Auth, config: Config) -> crate::Result<Self> {
-        let url_str = format!(
-            "wss://{}.tts.speech{}/cognitiveservices/websocket/v1",
-            auth.region,
-            get_azure_hostname_from_region(auth.region.as_str())
-        );
+        let url_str = match &auth {
+            Auth::Subscription { region, .. } => {
+                format!(
+                    "wss://{}.tts.speech{}/cognitiveservices/websocket/v1",
+                    region,
+                    get_azure_hostname_from_region(region.as_str())
+                )
+            }
+            Auth::Host { host, key } => host.to_string(),
+        };
 
         let client = BaseClient::connect(
             tokio_websockets::ClientBuilder::new()
@@ -36,7 +41,7 @@ impl Client {
                 .unwrap()
                 .add_header(
                     "Ocp-Apim-Subscription-Key".try_into().unwrap(),
-                    (&auth.subscription).try_into().unwrap(),
+                    (auth.key()).try_into().unwrap(),
                 )
                 .unwrap()
                 .add_header(
