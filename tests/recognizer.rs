@@ -212,8 +212,7 @@ async fn integration_test_recognizer() {
                             assert!(msg
                                 .headers
                                 .iter()
-                                .find(|h| h.0 == "Content-Type" && h.1 == "audio/mpeg")
-                                .is_some());
+                                .any(|h| h.0 == "Content-Type" && h.1 == "audio/mpeg"));
                             assert_eq!(
                                 msg.headers.iter().map(|h| h.0.clone()).collect::<Vec<_>>(),
                                 ["X-Timestamp", "Content-Type"]
@@ -232,7 +231,7 @@ async fn integration_test_recognizer() {
                             let msg = azure_speech::Message::try_from(msg)
                                 .expect("To convert to message");
                             assert_eq!(msg.path, "audio");
-                            assert!(msg.headers.iter().find(|h| h.0 == "Content-Type").is_none());
+                            assert!(!msg.headers.iter().any(|h| h.0 == "Content-Type"));
                             assert_eq!(
                                 msg.headers.iter().map(|h| h.0.clone()).collect::<Vec<_>>(),
                                 ["X-Timestamp"]
@@ -244,11 +243,11 @@ async fn integration_test_recognizer() {
                         }
                     }
 
-                    match tokio::time::timeout(std::time::Duration::from_millis(10), stream.next())
-                        .await
+                    if (tokio::time::timeout(std::time::Duration::from_millis(10), stream.next())
+                        .await)
+                        .is_ok()
                     {
-                        Ok(_) => panic!("Not expecting anything new."),
-                        _ => {}
+                        panic!("Not expecting anything new.")
                     }
                 })
             },
