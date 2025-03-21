@@ -115,7 +115,7 @@ mod test {
             } => {
                 assert_eq!(*offset, 500000);
                 assert_eq!(*viseme_id, 0);
-                assert_eq!(*is_last_animation, true);
+                assert!(*is_last_animation);
             }
             _ => panic!("Expected Viseme"),
         }

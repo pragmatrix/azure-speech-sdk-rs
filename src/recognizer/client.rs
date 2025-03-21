@@ -35,7 +35,7 @@ impl Client {
             Auth::Subscription { region, .. } => {
                 let base_url = format!(
                     "wss://{region}.stt.speech{}/speech/recognition/{}/cognitiveservices/v1",
-                    get_azure_hostname_from_region(&region),
+                    get_azure_hostname_from_region(region),
                     config.mode.as_str()
                 );
                 Url::parse(&base_url)?
