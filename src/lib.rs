@@ -28,12 +28,14 @@ mod config;
 pub mod connector;
 mod error;
 mod event;
+pub(crate) mod shared;
 mod stream_ext;
 mod utils;
 
 mod callback;
 pub mod recognizer;
 pub mod synthesizer;
+pub mod translator;
 
 pub use auth::*;
 pub use connector::*;
