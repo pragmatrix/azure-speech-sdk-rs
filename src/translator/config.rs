@@ -11,7 +11,7 @@ pub struct Config {
     pub(crate) device: Device,
 
     pub(crate) from_language: Language,
-    pub(crate) to_language: Language,
+    pub(crate) target_language: Language,
     pub(crate) output_format: OutputFormat,
 
     // todo: probably this will be removed and moved directly in the connection.
@@ -38,7 +38,7 @@ impl Default for Config {
     fn default() -> Self {
         Config {
             from_language: "en-GB".into(),
-            to_language: "en-GB".into(),
+            target_language: "en-GB".into(),
             output_format: OutputFormat::Simple,
             mode: RecognitionMode::Conversation,
             // language_detect_mode: None,
@@ -89,8 +89,8 @@ impl Config {
     /// Set the default language for the translation.
     ///
     /// If needed multiple language detection, use the set_detect_languages method.
-    pub fn set_to_language(mut self, language: impl Into<String>) -> Self {
-        self.to_language = language.into();
+    pub fn set_target_language(mut self, language: impl Into<String>) -> Self {
+        self.target_language = language.into();
         self
     }
 

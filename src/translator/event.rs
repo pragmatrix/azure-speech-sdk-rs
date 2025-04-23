@@ -22,11 +22,13 @@ pub enum Event {
     /// The speech recognition ended.
     EndDetected(RequestId, Offset),
 
+    TranslationSynthesis(RequestId, Vec<i16>),
+
     /// Recognizing event.
-    Recognizing(RequestId, Recognized, Offset, Duration, RawMessage),
+    //    Recognizing(RequestId, Recognized, Offset, Duration, RawMessage),
 
     /// Recognized event.
-    Recognized(RequestId, Recognized, Offset, Duration, RawMessage),
+    //    Recognized(RequestId, Recognized, Offset, Duration, RawMessage),
 
     /// UnMatch event.
     /// This event is triggered when the speech recognition does not match any text.

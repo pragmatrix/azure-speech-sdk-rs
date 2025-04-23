@@ -10,8 +10,9 @@ use crate::translator::{Config, OutputFormat};
 use crate::utils::get_azure_hostname_from_region;
 use crate::{stream_ext::StreamExt, Auth, Data, Message};
 use std::cmp::min;
+use std::io::Cursor;
 use tokio_stream::{Stream, StreamExt as _};
-use tracing::{info, warn};
+use tracing::{debug, error, info, warn};
 use url::Url;
 
 use super::utils::{
@@ -47,10 +48,12 @@ impl Client {
         url.query_pairs_mut()
             .append_pair("language", from_language)
             .append_pair("from", from_language)
-            .append_pair("to", &config.to_language)
+            .append_pair("to", &config.target_language)
             .append_pair("format", config.output_format.as_str())
             .append_pair("profanity", config.profanity.as_str())
-            .append_pair("storeAudio", &config.store_audio.to_string());
+            .append_pair("storeAudio", &config.store_audio.to_string())
+            .append_pair("features", "texttospeech");
+
         if config.output_format == OutputFormat::Detailed {
             url.query_pairs_mut()
                 .append_pair("wordLevelTimestamps", "true");
@@ -218,6 +221,29 @@ impl Client {
 fn convert_message_to_event(message: Message, session: &Session) -> Option<crate::Result<Event>> {
     match (message.path.as_str(), message.data, message.headers) {
         ("turn.start", _, _) => Some(Ok(Event::SessionStarted(session.request_id()))),
+        ("translation.synthesis", Data::Binary(audio), _) => {
+            let Some(audio) = audio else {
+                error!("No audio returned");
+                return None;
+            };
+
+            let Ok(reader) = hound::WavReader::new(Cursor::new(audio)) else {
+                error!("Invalid WAV header");
+                return None;
+            };
+            let spec = reader.spec();
+            debug!("Wav Spec: {spec:?}");
+            let samples: Result<Vec<i16>, _> = reader.into_samples().collect();
+            let Ok(samples) = samples else {
+                error!("Failed to convert audio to i16 samples");
+                return None;
+            };
+
+            Some(Ok(Event::TranslationSynthesis(
+                session.request_id(),
+                samples,
+            )))
+        }
         // ("speech.startdetected", Data::Text(Some(data)), _) => {
         //     serde_json::from_str::<crate::recognizer::message::SpeechStartDetected>(&data)
         //         .map(|v| Event::StartDetected(session.request_id(), v.offset))
