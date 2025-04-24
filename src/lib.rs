@@ -28,7 +28,6 @@ mod config;
 pub mod connector;
 mod error;
 mod event;
-pub(crate) mod shared;
 mod stream_ext;
 mod utils;
 

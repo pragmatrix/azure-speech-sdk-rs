@@ -1,151 +1,67 @@
 use serde::{Deserialize, Serialize};
 
-use super::Language;
-use crate::config::Device;
+use super::{Language, Voice};
+use crate::{config::Device, synthesizer::AudioFormat};
 
 /// The configuration for the recognizer.
 ///
 /// The configuration is used to set the parameters of the speech recognition.
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub(crate) device: Device,
+    pub recognition_language: Language,
+    pub target_languages: Vec<Language>,
+    pub output_format: OutputFormat,
+    /// Synthesize the output?
+    pub synthesize: bool,
 
-    pub(crate) from_language: Language,
-    pub(crate) target_language: Language,
-    pub(crate) output_format: OutputFormat,
+    // Not supported (yet), it's always 16khz WAV.
+    pub synthesize_format: AudioFormat,
+    pub synthesize_voice: Option<Voice>,
 
     // todo: probably this will be removed and moved directly in the connection.
-    pub(crate) mode: RecognitionMode, // todo: what is this?
+    pub mode: RecognitionMode, // todo: what is this?
 
     // pub(crate) language_detect_mode: Option<LanguageDetectMode>,
-    pub(crate) phrases: Option<Vec<String>>,
-
-    pub(crate) custom_models: Option<Vec<(String, String)>>,
-
-    pub(crate) connection_id: Option<String>, // todo: what is this for?
-
-    pub(crate) store_audio: bool, // todo: is this needed?
-
-    pub(crate) profanity: Profanity,
+    pub phrases: Option<Vec<String>>,
+    pub custom_models: Option<Vec<(String, String)>>,
+    pub connection_id: Option<String>, // todo: what is this for?
+    pub store_audio: bool,             // todo: is this needed?
+    pub device: Device,
+    pub profanity: Profanity,
     // todo: check diarization https://learn.microsoft.com/en-us/azure/ai-services/speech-service/get-started-stt-diarization?tabs=macos&pivots=programming-language-javascript
     // probably will be moved from here and added to a separate module.
-    //pub(crate) recognize_speaker: bool,
-
-    // todo add more detailed configuration from default:  src/common.speech/ConnectionFactoryBase.ts
+    //pub recognize_speaker: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        Config {
-            from_language: "en-GB".into(),
-            target_language: "en-GB".into(),
-            output_format: OutputFormat::Simple,
-            mode: RecognitionMode::Conversation,
+        Self {
+            recognition_language: "en-GB".into(),
+            target_languages: ["en-GB".to_string()].into(),
+            output_format: OutputFormat::default(),
+            synthesize: false,
+            synthesize_format: AudioFormat::default(),
+            synthesize_voice: None,
+            mode: RecognitionMode::default(),
             // language_detect_mode: None,
             phrases: None,
             custom_models: None,
             connection_id: None,
             store_audio: false,
             device: Device::default(),
-            profanity: Profanity::Masked,
+            profanity: Profanity::default(),
         }
     }
 }
 
 impl Config {
-    /// Enable audio logging in service.
-    ///
-    /// Audio and content logs are stored either in Microsoft-owned storage, or in your own storage account linked
-    /// to your Cognitive Services subscription (Bring Your Own Storage (BYOS) enabled Speech resource).
-    /// The logs will be removed after 30 days.
-    pub fn enable_audio_logging(mut self) -> Self {
-        self.store_audio = true;
-        self
+    pub fn new(recognition_language: Language, target_language: Language) -> Self {
+        Self {
+            recognition_language,
+            target_languages: vec![target_language],
+            ..Default::default()
+        }
     }
-
-    /// Set Device information.
-    ///
-    /// The device information is used to provide information about the source.
-    /// Some default values are already set.
-    pub fn set_device(mut self, device: Device) -> Self {
-        self.device = device;
-        self
-    }
-
-    /// Mask the profanity.
-    pub fn set_profanity(mut self, profanity: Profanity) -> Self {
-        self.profanity = profanity;
-        self
-    }
-
-    /// Set the default language for the recognition.
-    ///
-    /// If needed multiple language detection, use the set_detect_languages method.
-    pub fn set_from_language(mut self, language: impl Into<String>) -> Self {
-        self.from_language = language.into();
-        self
-    }
-
-    /// Set the default language for the translation.
-    ///
-    /// If needed multiple language detection, use the set_detect_languages method.
-    pub fn set_target_language(mut self, language: impl Into<String>) -> Self {
-        self.target_language = language.into();
-        self
-    }
-
-    // /// Instruct to detect the languages from the audio.
-    // ///
-    // /// The language detection is used to detect the language of the audio.
-    // /// This could not match the language of the audio, but it is used to provide better recognition.
-    // pub fn set_detect_languages(
-    //     mut self,
-    //     languages: Vec<Language>,
-    //     language_detect_mode: LanguageDetectMode,
-    // ) -> Self {
-    //     self.languages = languages;
-    //     self.language_detect_mode = Some(language_detect_mode);
-    //     self
-    // }
-
-    /// Helping phrases to detect better the context.
-    ///
-    /// Untested.
-    pub fn set_phrases(mut self, phrases: Vec<String>) -> Self {
-        self.phrases = Some(phrases);
-        self
-    }
-
-    /// Use custom Models.
-    ///
-    /// Untested.
-    pub fn set_custom_models(mut self, custom_models: Vec<(String, String)>) -> Self {
-        self.custom_models = Some(custom_models);
-        self
-    }
-
-    /// Set the recognition mode.
-    ///
-    /// *Only the Conversation mode was tested.*
-    #[allow(dead_code)]
-    pub fn set_recognition_mode(mut self, mode: RecognitionMode) -> Self {
-        self.mode = mode;
-        self
-    }
-
-    /// Set the output format of event responses.
-    ///
-    /// You will find the json in each event with Message.json() method.
-    pub fn set_output_format(mut self, format: OutputFormat) -> Self {
-        self.output_format = format;
-        self
-    }
-
-    //
-    // pub fn enable_recognize_speaker(mut self) -> Self {
-    //     self.recognize_speaker = true;
-    //     self
-    // }
 }
 
 #[derive(Debug, Clone, Default)]

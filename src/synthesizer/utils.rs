@@ -26,7 +26,7 @@ pub(crate) fn create_speech_config_message(request_id: String, config: &Config) 
     ))
 }
 
-/// Creates a speech context message.
+/// Creates a synthesis context message.
 pub(crate) fn create_synthesis_context_message(request_id: String, config: &Config) -> Message {
     Message::text(make_text_payload(
         vec![

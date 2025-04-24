@@ -1,16 +1,16 @@
-use crate::connector::Client as BaseClient;
-use crate::translator::audio_format::AudioFormat;
-use crate::translator::session::Session;
-use crate::translator::utils::create_audio_message;
-use crate::translator::{
-    AudioDevice, /*, Confidence */
-    Event,       /*, PrimaryLanguage, Recognized */
+use std::{cmp::min, io::Cursor};
+
+use crate::{
+    connector::Client as BaseClient,
+    stream_ext::StreamExt,
+    synthesizer::{self, utils::create_synthesis_context_message},
+    translator::{
+        session::Session, utils::create_audio_message, AudioDevice, AudioFormat, Config, Event,
+        OutputFormat,
+    },
+    utils::get_azure_hostname_from_region,
+    Auth, Data, Message,
 };
-use crate::translator::{Config, OutputFormat};
-use crate::utils::get_azure_hostname_from_region;
-use crate::{stream_ext::StreamExt, Auth, Data, Message};
-use std::cmp::min;
-use std::io::Cursor;
 use tokio_stream::{Stream, StreamExt as _};
 use tracing::{debug, error, info, warn};
 use url::Url;
@@ -44,27 +44,41 @@ impl Client {
             Auth::Host { host, .. } => host.clone(),
         };
 
-        let from_language = &config.from_language;
+        let from_language = &config.recognition_language;
         url.query_pairs_mut()
             .append_pair("language", from_language)
             .append_pair("from", from_language)
-            .append_pair("to", &config.target_language)
+            .append_pair("to", &config.target_languages.join(","))
             .append_pair("format", config.output_format.as_str())
             .append_pair("profanity", config.profanity.as_str())
             .append_pair("storeAudio", &config.store_audio.to_string())
-            .append_pair("features", "texttospeech");
+            .append_pair("features", "texttospeech")
+            .append_pair("outputFormat", config.synthesize_format.as_str());
+
+        if config.synthesize {
+            url.query_pairs_mut()
+                .append_pair("features", "texttospeech");
+        }
+
+        if let Some(voice) = &config.synthesize_voice {
+            url.query_pairs_mut().append_pair("voice", voice);
+        }
 
         if config.output_format == OutputFormat::Detailed {
             url.query_pairs_mut()
                 .append_pair("wordLevelTimestamps", "true");
         }
+
         // if config.languages.len() > 1 {
         //     url.query_pairs_mut().append_pair("lidEnabled", "true");
         // }
+
         if let Some(ref connection_id) = config.connection_id {
             url.query_pairs_mut()
                 .append_pair("X-ConnectionId", connection_id);
         }
+
+        debug!("url: {url}");
 
         let ws_client = tokio_websockets::ClientBuilder::new()
             .uri(url.as_str())
@@ -107,6 +121,18 @@ impl Client {
                 session.request_id().to_string(),
                 &config,
                 &audio_device,
+            ))
+            .await?;
+
+        let synthesizer_config = synthesizer::Config {
+            audio_format: config.synthesize_format.clone(),
+            ..Default::default()
+        };
+
+        client
+            .send(create_synthesis_context_message(
+                session.request_id().to_string(),
+                &synthesizer_config,
             ))
             .await?;
 

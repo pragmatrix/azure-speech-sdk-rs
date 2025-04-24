@@ -42,7 +42,7 @@ mod event;
 mod language;
 pub mod message;
 mod session;
-mod utils;
+pub mod utils;
 mod voice;
 
 mod callback;
