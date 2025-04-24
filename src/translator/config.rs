@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 
 use super::{Language, Voice};
@@ -18,6 +20,7 @@ pub struct Config {
     pub synthesize_format: AudioFormat,
     pub synthesize_voice: Option<Voice>,
 
+    pub initial_silence_timeout: Option<Duration>,
     pub mode: RecognitionMode,
 
     // pub(crate) language_detect_mode: Option<LanguageDetectMode>,
@@ -41,6 +44,7 @@ impl Default for Config {
             synthesize: false,
             synthesize_format: AudioFormat::default(),
             synthesize_voice: None,
+            initial_silence_timeout: None,
             mode: RecognitionMode::default(),
             // language_detect_mode: None,
             phrases: None,

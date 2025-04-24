@@ -58,6 +58,11 @@ impl Client {
             .append_pair("storeAudio", &config.store_audio.to_string())
             .append_pair("scenario", config.mode.as_str());
 
+        if let Some(timeout) = config.initial_silence_timeout {
+            url.query_pairs_mut()
+                .append_pair("initialSilenceTimeoutMs", &timeout.as_millis().to_string());
+        }
+
         if config.synthesize {
             url.query_pairs_mut()
                 .append_pair("features", "texttospeech");
