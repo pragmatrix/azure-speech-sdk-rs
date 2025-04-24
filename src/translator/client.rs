@@ -14,7 +14,6 @@ use crate::{
     connector::Client as BaseClient,
     recognizer::message::common::RecognitionStatus,
     stream_ext::StreamExt,
-    synthesizer::{self, utils::create_synthesis_context_message},
     translator::{
         session::Session, utils::create_audio_message, AudioDevice, AudioFormat, Config, Event,
         OutputFormat,
