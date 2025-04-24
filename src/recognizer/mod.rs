@@ -46,7 +46,7 @@ mod client;
 mod config;
 mod event;
 mod language;
-mod message;
+pub(crate) mod message;
 mod session;
 mod utils;
 

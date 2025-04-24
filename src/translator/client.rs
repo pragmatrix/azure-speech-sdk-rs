@@ -1,7 +1,18 @@
 use std::{cmp::min, io::Cursor};
 
+use tokio_stream::{Stream, StreamExt as _};
+use tracing::{debug, error, warn};
+use url::Url;
+
+use super::{
+    messages,
+    utils::{
+        create_audio_header_message, create_speech_config_message, create_speech_context_message,
+    },
+};
 use crate::{
     connector::Client as BaseClient,
+    recognizer::message::common::RecognitionStatus,
     stream_ext::StreamExt,
     synthesizer::{self, utils::create_synthesis_context_message},
     translator::{
@@ -10,13 +21,6 @@ use crate::{
     },
     utils::get_azure_hostname_from_region,
     Auth, Data, Message,
-};
-use tokio_stream::{Stream, StreamExt as _};
-use tracing::{debug, error, info, warn};
-use url::Url;
-
-use super::utils::{
-    create_audio_header_message, create_speech_config_message, create_speech_context_message,
 };
 
 const BUFFER_SIZE: usize = 4096;
@@ -247,6 +251,84 @@ impl Client {
 fn convert_message_to_event(message: Message, session: &Session) -> Option<crate::Result<Event>> {
     match (message.path.as_str(), message.data, message.headers) {
         ("turn.start", _, _) => Some(Ok(Event::SessionStarted(session.request_id()))),
+        ("turn.end", _, _) => Some(Ok(Event::SessionEnded(session.request_id()))),
+        ("speech.startdetected", Data::Text(Some(data)), _) => {
+            serde_json::from_str::<messages::SpeechStartDetected>(&data)
+                .map(|v| Event::StartDetected(session.request_id(), v.offset))
+                .map(Ok)
+                .ok()
+        }
+        ("speech.enddetected", Data::Text(Some(data)), _) => {
+            let value =
+                serde_json::from_str::<messages::SpeechEndDetected>(&data).unwrap_or_default();
+            Some(Ok(Event::EndDetected(session.request_id(), value.offset)))
+        }
+        ("translation.hypothesis", Data::Text(Some(data)), _) => {
+            match serde_json::from_str::<messages::TranslationHypothesis>(&data) {
+                Ok(value) => {
+                    let offset = value.offset + session.audio_offset();
+                    session.on_hypothesis_received(offset);
+                    Some(Ok(Event::Translating(
+                        session.request_id(),
+                        value.text,
+                        offset,
+                        value.duration,
+                        data,
+                    )))
+                }
+                Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
+            }
+        }
+        ("translation.phrase", Data::Text(Some(data)), _) => {
+            match serde_json::from_str::<messages::TranslationPhrase>(&data) {
+                Ok(phrase) => match phrase.recognition_status {
+                    RecognitionStatus::Success => Some(Ok(Event::Translated(
+                        session.request_id(),
+                        phrase.text.unwrap_or_default(),
+                        phrase.offset,
+                        phrase.duration,
+                        data,
+                    ))),
+                    RecognitionStatus::NoMatch => Some(Ok(Event::NoMatch(
+                        session.request_id(),
+                        phrase.offset,
+                        phrase.duration,
+                        data,
+                    ))),
+                    RecognitionStatus::EndOfDictation => None,
+                    status => {
+                        let status_to_error: Option<crate::Error> = (&status).into();
+                        if let Some(err) = status_to_error {
+                            error!("Translation status: {status:?}");
+                            return Some(Err(err));
+                        };
+                        warn!("Unprocessed translation.phrase status: {status:?}");
+                        None
+                    }
+                },
+                Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
+            }
+        }
+        ("audio.start", Data::Text(Some(data)), _) => {
+            match serde_json::from_str::<messages::AudioStart>(&data) {
+                Ok(value) => {
+                    // TODO:
+                    debug!("Unprocessed: {:?}", value);
+                    None
+                }
+                Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
+            }
+        }
+        ("audio.end", Data::Text(Some(data)), _) => {
+            match serde_json::from_str::<messages::AudioEnd>(&data) {
+                Ok(value) => {
+                    // TODO:
+                    debug!("Unprocessed: {:?}", value);
+                    None
+                }
+                Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
+            }
+        }
         ("translation.synthesis", Data::Binary(audio), _) => {
             let Some(audio) = audio else {
                 error!("No audio returned");
@@ -270,135 +352,8 @@ fn convert_message_to_event(message: Message, session: &Session) -> Option<crate
                 samples,
             )))
         }
-        // ("speech.startdetected", Data::Text(Some(data)), _) => {
-        //     serde_json::from_str::<crate::recognizer::message::SpeechStartDetected>(&data)
-        //         .map(|v| Event::StartDetected(session.request_id(), v.offset))
-        //         .map(Ok)
-        //         .ok()
-        // }
-        // ("speech.enddetected", Data::Text(Some(data)), _) => {
-        //     let value =
-        //         serde_json::from_str::<crate::recognizer::message::SpeechEndDetected>(&data)
-        //             .unwrap_or_default();
-        //     Some(Ok(Event::EndDetected(session.request_id(), value.offset)))
-        // }
-        // ("speech.hypothesis", Data::Text(Some(data)), _)
-        // | ("speech.fragment", Data::Text(Some(data)), _) => {
-        //     match serde_json::from_str::<crate::recognizer::message::SpeechHypothesis>(&data) {
-        //         Ok(value) => {
-        //             let offset = value.offset + session.audio_offset();
-        //             session.on_hypothesis_received(offset);
-        //             Some(Ok(Event::Recognizing(
-        //                 session.request_id(),
-        //                 Recognized {
-        //                     text: value.text,
-        //                     primary_language: value.primary_language.map(|l| {
-        //                         PrimaryLanguage::new(
-        //                             l.language.into(),
-        //                             l.confidence.map_or(Confidence::Unknown, |c| c.into()),
-        //                         )
-        //                     }),
-        //                     speaker_id: value.speaker_id,
-        //                 },
-        //                 offset,
-        //                 value.duration,
-        //                 data,
-        //             )))
-        //         }
-        //         Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
-        //     }
-        // }
-        // ("speech.phrase", Data::Text(Some(data)), _) => {
-        //     match serde_json::from_str::<crate::recognizer::message::SpeechPhrase>(&data) {
-        //         Ok(value) => {
-        //             let offset = value.offset.unwrap_or(0) + session.audio_offset();
-        //             let duration = value.duration.unwrap_or(0);
-        //             if value.recognition_status.is_end_of_dictation() {
-        //                 return None;
-        //             }
-        //             if value.recognition_status.is_no_match() {
-        //                 return Some(Ok(Event::UnMatch(
-        //                     session.request_id(),
-        //                     offset,
-        //                     duration,
-        //                     data,
-        //                 )));
-        //             }
-        //             match serde_json::from_str::<crate::recognizer::message::SimpleSpeechPhrase>(
-        //                 &data,
-        //             ) {
-        //                 Ok(simple) => Some(Ok(Event::Recognized(
-        //                     session.request_id(),
-        //                     Recognized {
-        //                         text: simple.display_text,
-        //                         primary_language: simple.primary_language.map(|l| {
-        //                             PrimaryLanguage::new(
-        //                                 l.language.into(),
-        //                                 l.confidence.map_or(Confidence::Unknown, |c| c.into()),
-        //                             )
-        //                         }),
-        //                         speaker_id: simple.speaker_id,
-        //                     },
-        //                     offset,
-        //                     duration,
-        //                     data,
-        //                 ))),
-        //                 Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
-        //             }
-        //         }
-        //         Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
-        //     }
-        // }
-        ("turn.end", _, _) => Some(Ok(Event::SessionEnded(session.request_id()))),
-        ("translation.response", Data::Text(Some(data)), _) => {
-            info!("Translation response: {data}");
-            None
-        }
-        ("translation.phrase", Data::Text(Some(data)), _) => {
-            info!("Translation phrase: {data}");
-            //     match serde_json::from_str::<messages::SpeechPhrase>(&data) {
-            //         Ok(value) => {
-            //             let offset = value.offset.unwrap_or(0) + session.audio_offset();
-            //             let duration = value.duration.unwrap_or(0);
-            //             if value.recognition_status.is_end_of_dictation() {
-            //                 return None;
-            //             }
-            //             if value.recognition_status.is_no_match() {
-            //                 return Some(Ok(Event::UnMatch(
-            //                     session.request_id(),
-            //                     offset,
-            //                     duration,
-            //                     data,
-            //                 )));
-            //             }
-            //             match serde_json::from_str::<messages::TranslationPhrase>(&data) {
-            //                 Ok(translation_phrase) => Some(Ok(Event::Recognized(
-            //                     session.request_id(),
-            //                     Recognized {
-            //                         // Concatenate all translation.translation.translations items into a single string separated with "|" character
-            //                         text: translation_phrase
-            //                             .translation
-            //                             .translations
-            //                             .iter()
-            //                             .map(|t| t.text.clone())
-            //                             .collect::<Vec<String>>()
-            //                             .join("|"),
-            //                         primary_language: None,
-            //                         speaker_id: None,
-            //                     },
-            //                     offset,
-            //                     duration,
-            //                     data,
-            //                 ))),
-            //                 Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
-            //             }
-            //         }
-            //         Err(e) => Some(Err(crate::Error::ParseError(e.to_string()))),
-            //     }
-            None
-        }
         (msg, data, _) => {
-            info!("Unprocessed translation msg `{msg}`:`{data:?}`");
+            warn!("Unexpected: `{msg}`:`{data:?}`");
             None
         }
     }

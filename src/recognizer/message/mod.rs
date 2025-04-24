@@ -1,4 +1,4 @@
-mod common;
+pub mod common;
 mod speech_end_detected;
 mod speech_hypothesis;
 mod speech_phrase;

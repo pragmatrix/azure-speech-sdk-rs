@@ -24,15 +24,12 @@ pub enum Event {
 
     TranslationSynthesis(RequestId, Vec<i16>),
 
-    /// Recognizing event.
-    //    Recognizing(RequestId, Recognized, Offset, Duration, RawMessage),
-
-    /// Recognized event.
-    //    Recognized(RequestId, Recognized, Offset, Duration, RawMessage),
+    Translating(RequestId, String, Offset, Duration, RawMessage),
+    Translated(RequestId, String, Offset, Duration, RawMessage),
 
     /// UnMatch event.
     /// This event is triggered when the speech recognition does not match any text.
-    UnMatch(RequestId, Offset, Duration, RawMessage),
+    NoMatch(RequestId, Offset, Duration, RawMessage),
     //Cancelled(RequestId, Offset, crate::Error),
 }
 
@@ -45,22 +42,6 @@ pub type Offset = u64;
 ///
 /// The duration is the time in milliseconds of the speech recognition.
 pub type Duration = u64;
-
-/// The recognized text.
-///
-/// Contains the recognized text, the primary language and the speaker id.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Recognized {
-    /// The recognized text.
-    pub text: String,
-    /// The primary language of the recognized text.
-    pub primary_language: Option<PrimaryLanguage>,
-
-    // todo: Remove from here and add to a diarization module.
-    /// The speaker id of the recognized text.
-    /// This will be None if the detection of the speaker is not activated.
-    pub speaker_id: Option<String>,
-}
 
 /// The confidence of the speech recognition.
 ///
