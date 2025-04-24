@@ -56,8 +56,7 @@ impl Client {
             .append_pair("format", config.output_format.as_str())
             .append_pair("profanity", config.profanity.as_str())
             .append_pair("storeAudio", &config.store_audio.to_string())
-            .append_pair("features", "texttospeech")
-            .append_pair("outputFormat", config.synthesize_format.as_str());
+            .append_pair("scenario", config.mode.as_str());
 
         if config.synthesize {
             url.query_pairs_mut()
@@ -128,17 +127,17 @@ impl Client {
             ))
             .await?;
 
-        let synthesizer_config = synthesizer::Config {
-            audio_format: config.synthesize_format.clone(),
-            ..Default::default()
-        };
+        // let synthesizer_config = synthesizer::Config {
+        //     audio_format: config.synthesize_format.clone(),
+        //     ..Default::default()
+        // };
 
-        client
-            .send(create_synthesis_context_message(
-                session.request_id().to_string(),
-                &synthesizer_config,
-            ))
-            .await?;
+        // client
+        //     .send(create_synthesis_context_message(
+        //         session.request_id().to_string(),
+        //         &synthesizer_config,
+        //     ))
+        //     .await?;
 
         // Send the initial context and audio header messages.
         client

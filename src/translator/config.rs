@@ -18,8 +18,7 @@ pub struct Config {
     pub synthesize_format: AudioFormat,
     pub synthesize_voice: Option<Voice>,
 
-    // todo: probably this will be removed and moved directly in the connection.
-    pub mode: RecognitionMode, // todo: what is this?
+    pub mode: RecognitionMode,
 
     // pub(crate) language_detect_mode: Option<LanguageDetectMode>,
     pub phrases: Option<Vec<String>>,
