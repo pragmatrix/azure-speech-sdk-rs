@@ -33,8 +33,7 @@ impl TryFrom<&OsStr> for AudioFormat {
             "ogg" | "oga" => Ok(AudioFormat::OggOpus),
             "mpeg" | "mpg" => Ok(AudioFormat::Mpeg),
             ext => Err(Self::Error::IOError(format!(
-                "Unsupported audio format. ({})",
-                ext
+                "Unsupported audio format. ({ext})"
             ))),
         }
     }

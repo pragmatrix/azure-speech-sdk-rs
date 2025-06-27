@@ -275,7 +275,7 @@ impl Display for Language {
             Language::ZuZa => "zu-ZA",
         };
 
-        write!(f, "{}", value)
+        write!(f, "{value}")
     }
 }
 

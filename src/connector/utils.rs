@@ -7,7 +7,7 @@ pub fn make_text_payload(headers: Headers, data: Option<&str>) -> String {
     let headers = transform_headers_to_string(headers);
     let data = data.map_or("", |d| d);
 
-    format!("{}{CRLF}{}", headers, data)
+    format!("{headers}{CRLF}{data}")
 }
 
 pub fn make_binary_payload(headers: Headers, data: Option<&[u8]>) -> Vec<u8> {
@@ -108,7 +108,7 @@ mod tests {
                 assert_eq!(data, Some("{\"Metadata\": [{\"Type\": \"SessionEnd\",\"Data\": {\"Offset\": 11250000}}]}".to_string()));
             }
             Err(e) => {
-                panic!("Error: {:?}", e);
+                panic!("Error: {e:?}");
             }
         }
     }

@@ -164,7 +164,7 @@ impl Client {
                                     connected = false;
 
                                     let close = msg.as_close().unwrap();
-                                    let _ = broadcaster.send(Err(crate::Error::ServerDisconnect(format!("{:?}", close))));
+                                    let _ = broadcaster.send(Err(crate::Error::ServerDisconnect(format!("{close:?}"))));
                                     tracing::warn!(reason = ?close.0, msg = close.1, "disconnected from server");
                                 }
                             },

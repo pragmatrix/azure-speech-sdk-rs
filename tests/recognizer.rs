@@ -90,7 +90,7 @@ async fn integration_test_reconnect() {
 
     info!("server started");
 
-    let uri = Uri::from_str(format!("ws://{}", address).as_str()).unwrap();
+    let uri = Uri::from_str(format!("ws://{address}").as_str()).unwrap();
     let client = azure_speech::connector::Client::connect(ClientBuilder::from_uri(uri))
         .await
         .unwrap();
@@ -183,7 +183,7 @@ async fn integration_test_recognizer() {
                             );
                         }
                         e => {
-                            panic!("Timed out waiting for messages: {:?}", e);
+                            panic!("Timed out waiting for messages: {e:?}");
                         }
                     }
 
@@ -200,7 +200,7 @@ async fn integration_test_recognizer() {
                             );
                         }
                         e => {
-                            panic!("Timed out waiting for messages: {:?}", e);
+                            panic!("Timed out waiting for messages: {e:?}");
                         }
                     }
 
@@ -222,7 +222,7 @@ async fn integration_test_recognizer() {
                             assert_eq!(msg.data, Data::Binary(None))
                         }
                         e => {
-                            panic!("Timed out waiting for messages: {:?}", e);
+                            panic!("Timed out waiting for messages: {e:?}");
                         }
                     }
 
@@ -241,7 +241,7 @@ async fn integration_test_recognizer() {
                             assert_eq!(msg.data, Data::Binary(None))
                         }
                         e => {
-                            panic!("Timed out waiting for messages: {:?}", e);
+                            panic!("Timed out waiting for messages: {e:?}");
                         }
                     }
 
@@ -259,7 +259,7 @@ async fn integration_test_recognizer() {
 
     info!("server started");
 
-    let uri = Uri::from_str(format!("ws://{}", address).as_str()).unwrap();
+    let uri = Uri::from_str(format!("ws://{address}").as_str()).unwrap();
     let client = azure_speech::connector::Client::connect(ClientBuilder::from_uri(uri))
         .await
         .unwrap();
