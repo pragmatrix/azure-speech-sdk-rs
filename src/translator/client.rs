@@ -116,7 +116,9 @@ impl Client {
     where
         A: Stream<Item = Vec<u8>> + Sync + Send + Unpin + 'static,
     {
-        let messages = self.client.stream().await?;
+        // 20250820: We had serveral situations in which the timeout of 30 seconds was reached. So
+        // for now, inter message timeouts are disabled.
+        let messages = self.client.stream_without_timeout().await?;
         let session = Session::new();
         let config = self.config.clone();
         let client = self.client.clone();

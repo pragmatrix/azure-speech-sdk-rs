@@ -54,7 +54,7 @@ impl Client {
         Ok(())
     }
 
-    /// Stream messages from the server.
+    /// Stream messages from the server with a inter message timeout of 30 seconds.
     pub async fn stream(&self) -> crate::Result<impl Stream<Item = crate::Result<crate::Message>>> {
         let (sender, receiver) = oneshot::channel();
         self.channel
@@ -83,8 +83,38 @@ impl Client {
                     crate::Message::try_from(msg)
                         .map_err(|e| crate::Error::InternalError(e.to_string()))
                 })
+            });
+
+        Ok(br)
+    }
+
+    /// Stream messages from the server without a inter message timeout.
+    pub async fn stream_without_timeout(
+        &self,
+    ) -> crate::Result<impl Stream<Item = crate::Result<crate::Message>>> {
+        let (sender, receiver) = oneshot::channel();
+        self.channel
+            .send(InternalMessage::Subscribe(sender))
+            .await?;
+
+        let br = BroadcastStream::new(receiver.await.map_err(|_| {
+            crate::Error::InternalError("Failed to subscribe to messages".to_string())
+        })??);
+
+        let br = Box::pin(br);
+
+        let br = br
+            .map(|m| {
+                tracing::trace!("Downstream message: {:?}", m);
+                m
             })
-            .map(move |m| m);
+            .map(|message| match message {
+                Ok(inner) => inner.and_then(|msg| {
+                    crate::Message::try_from(msg)
+                        .map_err(|e| crate::Error::InternalError(e.to_string()))
+                }),
+                Err(e) => Err(crate::Error::ConnectionError(e.to_string())),
+            });
 
         Ok(br)
     }
