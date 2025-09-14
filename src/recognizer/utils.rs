@@ -103,6 +103,12 @@ pub(crate) fn create_speech_context_message(request_id: String, config: &Config)
             "onInterim": Value::Null,
             // todo: when translation, this are set to { action: "Translate" }
             "onSuccess": Value::Null,
+            "interactive" : {
+                "segmentation" : {
+                    "mode": "custom",
+                    "segmentationForcedTimeoutMs": 100
+                }
+            }
         });
 
         context["phraseOutput"] = json!({
@@ -114,6 +120,31 @@ pub(crate) fn create_speech_context_message(request_id: String, config: &Config)
             }
         });
     }
+
+    context["phraseDetection"] = json!({
+
+        // "mode": "Conversation",
+        // "speakerDiarization": {
+        //     "mode": "Anonymous",
+        //     "audioSessionId": "1",
+        //     "audioOffsetMs": 0
+        // },
+
+        "mode": "interactive",
+
+        "interactive" : {
+            // "segmentation" : {
+            //     "mode": "custom",
+            //     "segmentationSilenceTimeoutMs": 100,
+            //     "segmentationForcedTimeoutMs": 20000,
+            // }
+            "segmentation" : {
+                "mode": "normal",
+                "segmentationSilenceTimeoutMs": 100,
+                "segmentationForcedTimeoutMs": 20000,
+            }
+        }
+    });
 
     Message::text(make_text_payload(
         vec![

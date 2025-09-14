@@ -52,6 +52,10 @@ impl Client {
             .append_pair("format", config.output_format.as_str())
             .append_pair("profanity", config.profanity.as_str())
             .append_pair("storeAudio", &config.store_audio.to_string());
+        // .append_pair("segmentationStrategy", "custom")
+        // .append_pair("segmentationMaximumTimeMs", "200")
+        // .append_pair("segmentationSilenceTimeoutMs", "100");
+
         if config.output_format == OutputFormat::Detailed {
             url.query_pairs_mut()
                 .append_pair("wordLevelTimestamps", "true");
