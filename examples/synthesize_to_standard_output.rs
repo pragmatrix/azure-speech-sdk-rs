@@ -62,16 +62,16 @@ pub fn sender_for_default_audio_output() -> (
     // Use a synchronous channel for this blocking thread.
     let (tx, rx) = std::sync::mpsc::channel::<Vec<u8>>();
     let handler = std::thread::spawn(move || {
-        // Initialize the default audio output stream.
-        let (_stream, handle) =
-            rodio::OutputStream::try_default().expect("Failed to obtain default output stream");
-        let sink = rodio::Sink::try_new(&handle).expect("Failed to create audio sink");
+        // Initialize the default audio output sink.
+        let sink_handle =
+            rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open default sink");
+        let player = rodio::Player::connect_new(sink_handle.mixer());
 
         // Create our custom stream source and pass it to the WAV decoder.
         let source = StreamMediaSource::new(rx);
         let decoder = rodio::Decoder::new_wav(source).expect("Failed to decode WAV stream");
-        sink.append(decoder);
-        sink.sleep_until_end();
+        player.append(decoder);
+        player.sleep_until_end();
     });
     (tx, handler)
 }

@@ -71,15 +71,15 @@ async fn listen_from_default_input() -> (impl Stream<Item = Vec<u8>>, cpal::Stre
         .default_input_config()
         .expect("Failed to get default input config");
 
-    tracing::info!("Using input device: {:?}", device.name());
+    tracing::info!("Using input device: {:?}", device.description());
     tracing::info!("Default input config: {:?}", device_config);
 
     let (tx, rx) = tokio::sync::mpsc::channel(1024);
 
     tx.send(
         hound::WavSpec {
-            sample_rate: device_config.sample_rate().0,
             channels: device_config.channels(),
+            sample_rate: device_config.sample_rate(),
             bits_per_sample: (device_config.sample_format().sample_size() * 8) as u16,
             sample_format: match device_config.sample_format().is_float() {
                 true => hound::SampleFormat::Float,
