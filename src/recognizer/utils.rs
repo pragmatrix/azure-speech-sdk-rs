@@ -90,14 +90,6 @@ pub(crate) fn create_speech_context_message(request_id: String, config: &Config)
         });
 
         context["phraseDetection"] = json!({
-
-            // "mode": "Conversation",
-            // "speakerDiarization": {
-            //     "mode": "Anonymous",
-            //     "audioSessionId": "1",
-            //     "audioOffsetMs": 0
-            // },
-
             "customModels": custom_models,
             // todo: when translation, this are set to { action: "Translate" }
             "onInterim": Value::Null,
@@ -112,6 +104,22 @@ pub(crate) fn create_speech_context_message(request_id: String, config: &Config)
             "phraseResults": {
                 "resultType": "Always"
             }
+        });
+    }
+
+    if config.recognize_speaker {
+        if context["phraseDetection"].is_null() {
+            context["phraseDetection"] = json!({
+                "onInterim": Value::Null,
+                "onSuccess": Value::Null,
+            });
+        }
+
+        context["phraseDetection"]["speakerDiarization"] = json!({
+            // Real-time speech context supports None/Identity/Anonymous modes.
+            "mode": "Anonymous",
+            "audioSessionId": "1",
+            "audioOffsetMs": 0,
         });
     }
 

@@ -26,10 +26,7 @@ pub struct Config {
     pub(crate) store_audio: bool, // todo: is this needed?
 
     pub(crate) profanity: Profanity,
-    // todo: check diarization https://learn.microsoft.com/en-us/azure/ai-services/speech-service/get-started-stt-diarization?tabs=macos&pivots=programming-language-javascript
-    // probably will be moved from here and added to a separate module.
-    //pub(crate) recognize_speaker: bool,
-
+    pub(crate) recognize_speaker: bool,
     // todo add more detailed configuration from default:  src/common.speech/ConnectionFactoryBase.ts
 }
 
@@ -46,6 +43,7 @@ impl Default for Config {
             store_audio: false,
             device: Device::default(),
             profanity: Profanity::Masked,
+            recognize_speaker: false,
         }
     }
 }
@@ -131,11 +129,10 @@ impl Config {
         self
     }
 
-    //
-    // pub fn enable_recognize_speaker(mut self) -> Self {
-    //     self.recognize_speaker = true;
-    //     self
-    // }
+    pub fn enable_recognize_speaker(mut self) -> Self {
+        self.recognize_speaker = true;
+        self
+    }
 }
 
 #[derive(Debug, Clone, Default)]
