@@ -183,8 +183,19 @@ impl Client {
                 tokio::select! {
                     // Handle any restart signal.
                     _ = restart_rx.recv() => {
-                        tracing::info!("Refreshing audio header");
+                        tracing::info!("Refreshing speech context and audio header");
                         _session.refresh();
+
+                        // A refreshed request id starts a new recognition turn on the same socket.
+                        // Re-send speech.context so languageId and other turn-scoped options remain active.
+                        // This is required to preserve multi-language detection across turn rollovers.
+                        if client.send(create_speech_context_message(
+                            _session.request_id().to_string(),
+                            &config,
+                        )).await.is_err() {
+                            warn!("Failed to refresh speech context");
+                            break;
+                        }
 
                         if client.send(create_audio_header_message(
                             _session.request_id().to_string(),
