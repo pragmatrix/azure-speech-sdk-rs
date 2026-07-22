@@ -22,7 +22,7 @@
 //!         );
 //!
 //!     // Set auth and the configuration for the synthesizer
-//!     let client = synthesizer::Client::connect(auth,synthesizer::Config::default()).await.expect("to connect to azure");
+//!     let client = synthesizer::Client::connect(auth, synthesizer::Config::default(), connector()).await.expect("to connect to azure");
 //!     let mut stream = client.synthesize("Hello world!").await.expect("to synthesize");
 //!
 //!     while let Some(event) = stream.next().await {
@@ -31,6 +31,10 @@
 //!         }
 //!     }
 //!     Ok(())
+//! }
+//!
+//! fn connector() -> &'static azure_speech::Connector {
+//!     todo!()
 //! }
 //!
 //! ```

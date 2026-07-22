@@ -19,7 +19,7 @@ use crate::{
         OutputFormat,
     },
     utils::get_azure_hostname_from_region,
-    Auth, Data, Message,
+    Auth, Connector, Data, Message,
 };
 
 const BUFFER_SIZE: usize = 4096;
@@ -35,7 +35,11 @@ impl Client {
         Self { client, config }
     }
 
-    pub async fn connect(auth: Auth, config: Config) -> crate::Result<Self> {
+    pub async fn connect(
+        auth: Auth,
+        config: Config,
+        connector: &'static Connector,
+    ) -> crate::Result<Self> {
         let mut url = match &auth {
             Auth::Subscription { region, .. } => {
                 let base_url = format!(
@@ -97,7 +101,8 @@ impl Client {
             .add_header(
                 "X-ConnectionId".try_into().unwrap(),
                 uuid::Uuid::new_v4().to_string().try_into().unwrap(),
-            )?;
+            )?
+            .connector(connector);
 
         let client = BaseClient::connect(ws_client).await?;
         Ok(Self::new(client, config))

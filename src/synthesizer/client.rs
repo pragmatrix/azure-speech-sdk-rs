@@ -9,6 +9,7 @@ use crate::synthesizer::utils::{
 };
 use crate::synthesizer::{message, ssml::ToSSML, Config};
 use crate::utils::get_azure_hostname_from_region;
+use crate::Connector;
 use tokio_stream::{Stream, StreamExt as _};
 
 #[derive(Clone)]
@@ -23,7 +24,11 @@ impl Client {
         Self { client, config }
     }
 
-    pub async fn connect(auth: Auth, config: Config) -> crate::Result<Self> {
+    pub async fn connect(
+        auth: Auth,
+        config: Config,
+        connector: &'static Connector,
+    ) -> crate::Result<Self> {
         let url_str = match &auth {
             Auth::Subscription { region, .. } => {
                 format!(
@@ -35,22 +40,22 @@ impl Client {
             Auth::Host { host, .. } => host.to_string(),
         };
 
-        let client = BaseClient::connect(
-            tokio_websockets::ClientBuilder::new()
-                .uri(&url_str)
-                .unwrap()
-                .add_header(
-                    "Ocp-Apim-Subscription-Key".try_into().unwrap(),
-                    (auth.key()).try_into().unwrap(),
-                )
-                .unwrap()
-                .add_header(
-                    "X-ConnectionId".try_into().unwrap(),
-                    uuid::Uuid::new_v4().to_string().try_into().unwrap(),
-                )
-                .unwrap(),
-        )
-        .await?;
+        let ws_client = tokio_websockets::ClientBuilder::new()
+            .uri(&url_str)
+            .unwrap()
+            .add_header(
+                "Ocp-Apim-Subscription-Key".try_into().unwrap(),
+                (auth.key()).try_into().unwrap(),
+            )
+            .unwrap()
+            .add_header(
+                "X-ConnectionId".try_into().unwrap(),
+                uuid::Uuid::new_v4().to_string().try_into().unwrap(),
+            )
+            .unwrap()
+            .connector(connector);
+
+        let client = BaseClient::connect(ws_client).await?;
         Ok(Self::new(client, config))
     }
 

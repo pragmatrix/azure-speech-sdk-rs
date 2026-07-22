@@ -42,6 +42,7 @@ pub use error::*;
 
 pub use event::*;
 pub use stream_ext::*;
+pub use tokio_websockets::Connector;
 
 pub mod stream {
     //! Re-export of `tokio_stream` crate.

@@ -3,6 +3,8 @@ use azure_speech::{recognizer, StreamExt};
 use std::env;
 use std::error::Error;
 
+mod common;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     if env::var_os("RUST_LOG").is_none() {
@@ -17,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let config = recognizer::Config::default();
 
-    let client = recognizer::Client::connect(auth, config)
+    let client = recognizer::Client::connect(auth, config, common::native_tls_connector())
         .await
         .expect("to connect to azure");
 

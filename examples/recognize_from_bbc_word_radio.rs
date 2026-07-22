@@ -2,6 +2,8 @@ use azure_speech::{recognizer, Auth};
 use std::env;
 use tokio_stream::{Stream, StreamExt};
 
+mod common;
+
 #[tokio::main]
 async fn main() {
     if env::var_os("RUST_LOG").is_none() {
@@ -19,6 +21,7 @@ async fn main() {
         recognizer::Config::default()
             // The BBC World Service stream is in English.
             .set_language(recognizer::Language::EnGb),
+        common::native_tls_connector(),
     )
     .await
     .expect("Failed to connect to Azure");

@@ -8,6 +8,8 @@ use std::error::Error;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::{Stream, StreamExt};
 
+mod common;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     if env::var_os("RUST_LOG").is_none() {
@@ -24,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let config = recognizer::Config::default();
 
-    let client = recognizer::Client::connect(auth, config)
+    let client = recognizer::Client::connect(auth, config, common::native_tls_connector())
         .await
         .expect("to connect to azure");
 

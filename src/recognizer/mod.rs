@@ -22,7 +22,7 @@
 //!         env::var("AZURE_SUBSCRIPTION_KEY").expect("Subscription set on AZURE_SUBSCRIPTION_KEY env"),
 //!     );
 //!
-//!     let client = recognizer::Client::connect(auth, recognizer::Config::default()).await?;
+//!     let client = recognizer::Client::connect(auth, recognizer::Config::default(), connector()).await?;
 //!
 //!     // check in the example folder for how to create the audio stream.
 //!     let audio_stream = create_audio_stream();
@@ -37,6 +37,10 @@
 //!     tracing::info!("Completed!");
 //!
 //!     Ok(())
+//! }
+//!
+//! fn connector() -> &'static azure_speech::Connector {
+//!     todo!()
 //! }
 //!
 
