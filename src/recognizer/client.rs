@@ -263,6 +263,8 @@ impl Client {
 
         // Build the output stream that filters and converts messages into events.
         let session_clone = session.clone();
+        let restart_session = session.clone();
+        let completion_session = session.clone();
         let output_stream = messages
             .filter(move |msg| match msg {
                 Ok(m) => m.id == session.request_id().to_string(),
@@ -276,12 +278,19 @@ impl Client {
                 }
             })
             .map(move |event| {
-                if let Ok(Event::SessionEnded(_)) = event {
-                    let _ = restart_tx.try_send(());
+                match &event {
+                    Ok(Event::SessionEnded(_)) if !restart_session.is_audio_completed() => {
+                        let _ = restart_tx.try_send(());
+                    }
+                    _ => {}
                 }
                 event
             })
-            .stop_after(|event| event.is_err());
+            .stop_after(move |event| {
+                event.is_err()
+                    || matches!(event, Ok(Event::SessionEnded(_)))
+                        && completion_session.is_audio_completed()
+            });
 
         Ok(output_stream)
     }
