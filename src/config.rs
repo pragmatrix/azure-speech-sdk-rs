@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -56,12 +58,17 @@ pub struct Os {
 
 impl Default for Os {
     fn default() -> Self {
-        let os = os_info::get();
-        Os {
-            version: os.version().to_string(),
-            name: os.os_type().to_string(),
-            platform: os.to_string(),
-        }
+        static OS: OnceLock<Os> = OnceLock::new();
+
+        OS.get_or_init(|| {
+            let os = os_info::get();
+            Os {
+                version: os.version().to_string(),
+                name: os.os_type().to_string(),
+                platform: os.to_string(),
+            }
+        })
+        .clone()
     }
 }
 
