@@ -10,7 +10,7 @@ use crate::recognizer::{
 };
 use crate::utils::get_azure_hostname_from_region;
 use crate::{stream_ext::StreamExt, Auth, Connector, Data, Message};
-use std::cmp::min;
+use std::{cmp::min, time::Duration};
 use tokio::io::AsyncReadExt;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::{Stream, StreamExt as _};
@@ -131,14 +131,29 @@ impl Client {
     }
     pub async fn recognize<A>(
         &self,
-        mut audio: A,
+        audio: A,
         audio_format: AudioFormat,
         audio_device: AudioDevice,
     ) -> crate::Result<impl Stream<Item = crate::Result<Event>>>
     where
         A: Stream<Item = Vec<u8>> + Sync + Send + Unpin + 'static,
     {
-        let messages = self.client.stream().await?;
+        self.recognize_with_timeout(audio, audio_format, audio_device, None)
+            .await
+    }
+
+    /// Recognize audio with an optional timeout between messages from the server.
+    pub async fn recognize_with_timeout<A>(
+        &self,
+        mut audio: A,
+        audio_format: AudioFormat,
+        audio_device: AudioDevice,
+        timeout: Option<Duration>,
+    ) -> crate::Result<impl Stream<Item = crate::Result<Event>>>
+    where
+        A: Stream<Item = Vec<u8>> + Sync + Send + Unpin + 'static,
+    {
+        let messages = self.client.stream_with_timeout(timeout).await?;
         let session = Session::new();
         let config = self.config.clone();
         let client = self.client.clone();
